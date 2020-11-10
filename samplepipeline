@@ -1,0 +1,38 @@
+pipeline {
+   agent any
+
+   stages {
+      
+      stage('Build docker image from git and push to DockerHub') {
+         steps {
+            sshPublisher(publishers: [sshPublisherDesc(configName: 'ip-172-31-30-92.us-east-2.compute.internal', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''git clone https://github.com/srimul/dockerClass.git
+cd dockerClass/nginxDocker
+ls -ltr
+sudo chmod 666 Dockerfile
+sudo docker build . -t vidyamul/nginx
+sudo docker images
+sudo docker login DockerID
+sudo docker push vidyamul/nginx''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+         }
+      }
+      
+      stage('Pull and run Docker Image') {
+         steps {
+             sshPublisher(publishers: [sshPublisherDesc(configName: 'ip-172-31-38-19.us-east-2.compute.internal', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''sudo snap install docker
+sudo docker login DockerID
+sudo docker pull vidyamul/nginx
+sudo docker images
+sudo docker run -p 8080:8080 vidyamul/nginx''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+      }
+      stage('Test Docker image') {
+         steps {
+            sshPublisher(publishers: [sshPublisherDesc(configName: 'ip-172-31-38-19.us-east-2.compute.internal', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''
+sudo docker ps -a | grep nginx
+wget http://ip-172-31-38-19:8080/index.html
+wget http://ip-172-31-38-19:8080/index.html
+cat index.html''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+            }
+      }
+   }
+}
